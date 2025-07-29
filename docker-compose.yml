@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: psych-appointments-db
+    environment:
+      POSTGRES_DB: PsychDb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - psych-network
+    restart: unless-stopped
+
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: psych-appointments-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@psychappointments.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - psych-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # ASP.NET Core Web API
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: psych-appointments-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=PsychDb;Username=postgres;Password=postgres
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "5000:8080"
+    networks:
+      - psych-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # Angular Client
+  client:
+    build:
+      context: ./client/psych-appointments-client
+      dockerfile: Dockerfile
+    container_name: psych-appointments-client
+    ports:
+      - "4200:80"
+    networks:
+      - psych-network
+    depends_on:
+      - api
+    restart: unless-stopped
+
+networks:
+  psych-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:

@@ -1,0 +1,6 @@
+@PsychAppointments.WebApi_HostAddress = http://localhost:5100
+
+GET {{PsychAppointments.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
